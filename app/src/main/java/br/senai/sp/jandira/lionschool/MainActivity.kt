@@ -115,8 +115,7 @@ fun HomeScreen() {
                 fontFamily = defaultFont,
                 fontSize = 25.sp,
                 color = Color.White,
-                letterSpacing = 3.sp,
-                modifier = Modifier.padding(top = 25.dp, bottom = 50.dp)
+                letterSpacing = 3.sp
             )
 
             OutlinedTextField(modifier = Modifier
