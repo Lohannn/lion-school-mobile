@@ -40,6 +40,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
+import java.util.Vector
 
 class ListAlunos : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,9 +53,22 @@ class ListAlunos : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ListAlunosScreen() {
     val defaultFont = FontFamily(Font(R.font.roboto_black))
+
+    var textField by remember {
+        mutableStateOf("")
+    }
+
+    var coursingState by remember {
+        mutableStateOf(false)
+    }
+
+    var finalizedState by remember {
+        mutableStateOf(false)
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize(),
@@ -92,6 +106,111 @@ fun ListAlunosScreen() {
                 fontFamily = defaultFont,
                 fontSize = 17.sp,
                 color = Color(50, 71, 176))
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            OutlinedTextField(modifier = Modifier
+                .width(328.dp)
+                .height(50.dp)
+                .border(border = BorderStroke(color = Color.Transparent, width = 0.dp)),
+                value = textField,
+                onValueChange = { textField = it },
+                colors = TextFieldDefaults.textFieldColors(
+                    backgroundColor = Color(50, 71, 176),
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(35.dp),
+                textStyle = TextStyle(
+                    fontSize = 15.sp,
+                    fontFamily = defaultFont,
+                ),
+                placeholder = {
+                    Text(
+                        text = "Pesquise um aluno...",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontFamily = defaultFont
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.busca),
+                        contentDescription = "Search",
+                        tint = Color(255, 194, 63),
+                        modifier = Modifier.size(50.dp)
+                    )
+                })
+            
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(modifier = Modifier
+                .width(328.dp)
+                .height(45.dp),
+            horizontalArrangement = Arrangement.SpaceBetween) {
+                IconToggleButton(
+                    checked = coursingState,
+                    onCheckedChange = { checked ->
+                        // Ativa o botão atual
+                        coursingState = checked
+                    },
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(156.dp)
+                        .background(
+                            color = if (!coursingState) Color(50, 71, 176)
+                            else Color(255, 194, 63),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                ) {
+                    Row(modifier = Modifier.fillMaxHeight().fillMaxWidth()
+                        .padding(start = 10.dp, end = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = CenterVertically) {
+                        Icon(painter = painterResource(id = R.drawable.baseline_create_24),
+                            contentDescription = "cursando",
+                            tint = if (!coursingState) Color(255, 194, 63)
+                            else Color(50, 71, 176),
+                            modifier = Modifier.size(25.dp))
+                        Text(text = "Cursando",
+                            color = if (!coursingState) Color(255, 194, 63)
+                            else Color(50, 71, 176),
+                            fontFamily = defaultFont,
+                            fontSize = 19.sp)
+                    }
+                }
+                IconToggleButton(
+                    checked = finalizedState,
+                    onCheckedChange = { checked ->
+                        finalizedState = checked
+                    },
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(156.dp)
+                        .background(
+                            color = if (!finalizedState) Color(50, 71, 176)
+                            else Color(255, 194, 63),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                ) {
+                    Row(modifier = Modifier.fillMaxHeight().fillMaxWidth()
+                        .padding(start = 10.dp, end = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = CenterVertically) {
+                        Icon(painter = painterResource(id = R.drawable.concluido),
+                            contentDescription = "finalizado",
+                            tint = if (!finalizedState) Color(255, 194, 63)
+                            else Color(50, 71, 176),
+                            modifier = Modifier.size(25.dp))
+                        Text(text = "Finalizado",
+                            color = if (!finalizedState) Color(255, 194, 63)
+                            else Color(50, 71, 176),
+                            fontFamily = defaultFont,
+                            fontSize = 19.sp)
+                    }
+
+                }
+            }
         }
     }
 }
