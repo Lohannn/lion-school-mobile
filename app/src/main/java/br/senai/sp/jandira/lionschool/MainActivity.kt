@@ -60,6 +60,7 @@ fun HomeScreen() {
     }
 
     var cursoSelecionado = ""
+
     var buttonReady by remember {
         mutableStateOf(false)
     }
