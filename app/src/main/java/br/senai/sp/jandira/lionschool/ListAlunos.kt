@@ -1,21 +1,15 @@
 package br.senai.sp.jandira.lionschool
 
+import android.content.Intent
+import android.content.Intent.getIntent
 import android.os.Bundle
-import android.util.Log
-import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,15 +18,12 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,15 +35,18 @@ import coil.compose.AsyncImage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.Retrofit
 import java.util.*
+
 
 class ListAlunos : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val curso = intent.getStringExtra("sigla")
         setContent {
             LionSchoolTheme {
-                ListAlunosPreview()
+                if (curso != null) {
+                    ListAlunosPreview(curso)
+                }
             }
         }
     }
@@ -60,7 +54,8 @@ class ListAlunos : ComponentActivity() {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ListAlunosScreen() {
+fun ListAlunosScreen(curso: String) {
+
     val defaultFont = FontFamily(Font(R.font.roboto_black))
 
     var textField by remember {
@@ -79,7 +74,9 @@ fun ListAlunosScreen() {
         mutableStateOf(listOf<br.senai.sp.jandira.lionschool.model.Aluno>())
     }
 
-    val call = RetrofitFactory().getAlunosService().getAlunosByCourse(siglaCurso = "RDS")
+    val context = LocalContext.current
+
+    val call = RetrofitFactory().getAlunosService().getAlunosByCourse(siglaCurso = curso)
 
     call.enqueue(object : Callback<Alunos> {
         override fun onResponse(
@@ -95,9 +92,32 @@ fun ListAlunosScreen() {
 
     })
 
+    fun filterText(nomeDoAluno: String){
+        val callByName = RetrofitFactory().getAlunosService().getAlunoByNameAndCourse(nome = nomeDoAluno)
+        callByName.enqueue(object : Callback<ListaCursos> {
+            override fun onResponse(
+                call: Call<ListaCursos>,
+                response: Response<ListaCursos>
+            ) {
+                listCursos = if (response.body() != null){
+                    response.body()!!.cursos
+                } else {
+                    emptyList()
+                }
+            }
+
+            override fun onFailure(call: Call<ListaCursos>, t: Throwable) {
+
+            }
+
+        })
+    }
+
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
             horizontalAlignment = CenterHorizontally
         ) {
             Row(
@@ -295,7 +315,10 @@ fun ListAlunosScreen() {
                                     Color(255, 194, 63),
                                 shape = RoundedCornerShape(15.dp)
                             )
-                            .padding(12.dp),
+                            .padding(12.dp)
+                            .clickable { var openStudent = Intent(context, StudentActivity::class.java)
+                                openStudent.putExtra("matricula", aluno.matricula)
+                                context.startActivity(openStudent) },
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Box(modifier = Modifier
@@ -314,8 +337,8 @@ fun ListAlunosScreen() {
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier
                             .fillMaxHeight()
-                            .fillMaxWidth()
-                        ) {
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.SpaceBetween) {
                             Text(text = aluno.nome,
                                 color = if (aluno.status == "Cursando")
                                     Color.White
@@ -326,8 +349,7 @@ fun ListAlunosScreen() {
                                 textAlign = TextAlign.Start)
 
                             Row(modifier = Modifier
-                                .fillMaxWidth()
-                                .height(10.dp),
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(text = "RM: ${aluno.matricula}",
                                     color = if (aluno.status == "Cursando")
@@ -352,12 +374,25 @@ fun ListAlunosScreen() {
                 }
             }
 
+            Row(modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.Bottom) {
+                Box(modifier = Modifier
+                    .height(85.dp)
+                    .background(
+                        color = Color(50, 71, 176),
+                        shape = RoundedCornerShape(topStart = 30.dp)
+                    )
+                    .width(156.dp))
+            }
+
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun ListAlunosPreview() {
-    ListAlunosScreen()
+fun ListAlunosPreview(curso: String) {
+    ListAlunosScreen(curso)
 }

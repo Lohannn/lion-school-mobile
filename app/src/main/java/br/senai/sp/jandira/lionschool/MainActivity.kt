@@ -1,5 +1,7 @@
 package br.senai.sp.jandira.lionschool
 
+import android.content.Intent
+import android.content.Intent.getIntent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -10,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -22,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -51,6 +55,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun HomeScreen() {
+
     val defaultFont = FontFamily(Font(R.font.roboto_black))
     var textField by remember {
         mutableStateOf("")
@@ -64,6 +69,8 @@ fun HomeScreen() {
     var buttonReady by remember {
         mutableStateOf(false)
     }
+
+    val context = LocalContext.current
 
     val call = RetrofitFactory().getCursosService().getCursos()
 
@@ -80,6 +87,27 @@ fun HomeScreen() {
         }
 
     })
+
+    fun filterText(nomeDoCurso: String){
+        val callByName = RetrofitFactory().getCursosService().getCursosByName(nomeDoCurso)
+            callByName.enqueue(object : Callback<ListaCursos> {
+                override fun onResponse(
+                    call: Call<ListaCursos>,
+                    response: Response<ListaCursos>
+                ) {
+                    listCursos = if (response.body() != null){
+                        response.body()!!.cursos
+                    } else {
+                        emptyList()
+                    }
+                }
+
+                override fun onFailure(call: Call<ListaCursos>, t: Throwable) {
+
+                }
+
+            })
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -124,7 +152,10 @@ fun HomeScreen() {
                 .height(50.dp)
                 .border(border = BorderStroke(color = Color.Transparent, width = 0.dp)),
                 value = textField,
-                onValueChange = { textField = it },
+                onValueChange = { textField = it
+
+                                filterText(it)
+                                },
                 colors = TextFieldDefaults.textFieldColors(
                     backgroundColor = Color(110, 131, 235),
                     unfocusedIndicatorColor = Color.Transparent,
@@ -150,7 +181,8 @@ fun HomeScreen() {
                         tint = Color(255, 194, 63),
                         modifier = Modifier.size(50.dp)
                     )
-                })
+                },
+                singleLine = true)
 
             val buttonStates = remember { mutableStateListOf<Boolean>() }
             buttonStates.addAll(List(listCursos.size) { false })
@@ -162,95 +194,98 @@ fun HomeScreen() {
                     .padding(top = 20.dp)
             ) {
 
-                itemsIndexed(listCursos) { index, curso ->
-                    val buttonState = buttonStates.getOrNull(index) ?: false
+                if(listCursos.isNotEmpty()){
+                    itemsIndexed(listCursos) { index, curso ->
+                        val buttonState = buttonStates.getOrNull(index) ?: false
 
-                    IconToggleButton(
-                        checked = buttonState,
-                        onCheckedChange = { checked ->
-                            // Desativa todos os outros botões
-                            buttonStates.fill(false)
-                            // Ativa o botão atual
-                            buttonStates[index] = checked
+                        IconToggleButton(
+                            checked = buttonState,
+                            onCheckedChange = { checked ->
+                                // Desativa todos os outros botões
+                                buttonStates.fill(false)
+                                // Ativa o botão atual
+                                buttonStates[index] = checked
 
-                            cursoSelecionado = if(checked){
-                                curso.sigla
-                            } else {
-                                ""
-                            }
+                                cursoSelecionado = if(checked){
+                                    curso.sigla
+                                } else {
+                                    ""
+                                }
 
-                            buttonReady = checked
-                        },
-                        modifier = Modifier
-                            .padding(end = 15.dp)
-                            .fillMaxHeight()
-                            .width(171.dp)
-                            .border(
-                                width = 2.dp,
-                                color = if (!buttonState) Color(255, 194, 63)
-                                else Color.White,
-                                shape = RoundedCornerShape(5.dp)
-                            )
-                            .background(
-                                color = if (!buttonState) Color(50, 71, 176)
-                                else Color(255, 194, 63),
-                                shape = RoundedCornerShape(5.dp)
-                            )
-                    ) {
-                        Column(
+                                buttonReady = checked
+                            },
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                AsyncImage(
-                                    model = curso.icone,
-                                    contentDescription = "icone do curso",
-                                    colorFilter = ColorFilter.colorMatrix(
-                                        ColorMatrix(
-                                            floatArrayOf(
-                                                -1f, 0f, 0f, 0f, 255f,
-                                                0f, -1f, 0f, 0f, 255f,
-                                                0f, 0f, -1f, 0f, 255f,
-                                                0f, 0f, 0f, 1f, 0f
-                                            )
-                                        )
-                                    ),
-                                    modifier = Modifier.size(width = 55.dp, height = 55.dp)
-                                )
-
-                                Text(
-                                    text = curso.sigla,
+                                .padding(end = 15.dp)
+                                .fillMaxHeight()
+                                .width(171.dp)
+                                .border(
+                                    width = 2.dp,
                                     color = if (!buttonState) Color(255, 194, 63)
-                                        else Color(50, 71, 176),
-                                    fontSize = 35.sp,
-                                    fontFamily = defaultFont
+                                    else Color.White,
+                                    shape = RoundedCornerShape(5.dp)
                                 )
-                            }
+                                .background(
+                                    color = if (!buttonState) Color(50, 71, 176)
+                                    else Color(255, 194, 63),
+                                    shape = RoundedCornerShape(5.dp)
+                                )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    AsyncImage(
+                                        model = curso.icone,
+                                        contentDescription = "icone do curso",
+                                        colorFilter = ColorFilter.colorMatrix(
+                                            ColorMatrix(
+                                                floatArrayOf(
+                                                    -1f, 0f, 0f, 0f, 255f,
+                                                    0f, -1f, 0f, 0f, 255f,
+                                                    0f, 0f, -1f, 0f, 255f,
+                                                    0f, 0f, 0f, 1f, 0f
+                                                )
+                                            )
+                                        ),
+                                        modifier = Modifier.size(width = 55.dp, height = 55.dp)
+                                    )
 
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(text = curso.nome.replace(Regex("[0-9]|-"),
-                                    "").drop(2),
-                                color = Color.White,
-                                fontSize = 19.sp,
-                                fontFamily = defaultFont)
-                                Spacer(modifier = Modifier.height(25.dp))
-                                Text(text = "${curso.carga}hrs",
-                                color = Color.White,
-                                fontSize = 19.sp,
-                                fontFamily = defaultFont,
-                                textAlign = TextAlign.End,
-                                modifier = Modifier.fillMaxWidth())
+                                    Text(
+                                        text = curso.sigla,
+                                        color = if (!buttonState) Color(255, 194, 63)
+                                        else Color(50, 71, 176),
+                                        fontSize = 35.sp,
+                                        fontFamily = defaultFont
+                                    )
+                                }
+
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(text = curso.nome.replace(Regex("[0-9]|-"),
+                                        "").drop(2),
+                                        color = Color.White,
+                                        fontSize = 19.sp,
+                                        fontFamily = defaultFont)
+                                    Spacer(modifier = Modifier.height(25.dp))
+                                    Text(text = "${curso.carga}hrs",
+                                        color = Color.White,
+                                        fontSize = 19.sp,
+                                        fontFamily = defaultFont,
+                                        textAlign = TextAlign.End,
+                                        modifier = Modifier.fillMaxWidth())
+                                }
                             }
                         }
                     }
                 }
+
             }
             Button(modifier = Modifier
                 .fillMaxWidth()
@@ -264,7 +299,11 @@ fun HomeScreen() {
                     disabledContentColor = Color(222, 222, 222, 136)
                 ),
                 enabled = buttonReady,
-                onClick = {}) {
+                onClick = {
+                    var openList = Intent(context, ListAlunos::class.java)
+                    openList.putExtra("sigla", cursoSelecionado)
+                    context.startActivity(openList)
+                }) {
                 Text(text = "Selecionar Curso",
                 fontFamily = defaultFont,
                 fontSize = 20.sp)

@@ -1,5 +1,6 @@
 package br.senai.sp.jandira.lionschool.services
 
+import br.senai.sp.jandira.lionschool.model.Alunos
 import br.senai.sp.jandira.lionschool.model.ListaCursos
 import retrofit2.Call
 import retrofit2.http.GET
@@ -13,4 +14,6 @@ interface CursosService {
     @GET("cursos")
     fun getCursos(): Call<ListaCursos>
 
+    @GET("cursos")
+    fun getCursosByName( @Query("nome") nomeDoCurso: String): Call<ListaCursos>
 }
