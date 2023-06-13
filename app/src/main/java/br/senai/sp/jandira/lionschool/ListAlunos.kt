@@ -42,10 +42,13 @@ class ListAlunos : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val curso = intent.getStringExtra("sigla")
+        val nomeCurso = intent.getStringExtra("nome")
         setContent {
             LionSchoolTheme {
                 if (curso != null) {
-                    ListAlunosPreview(curso)
+                    if (nomeCurso != null) {
+                        ListAlunosPreview(curso, nomeCurso)
+                    }
                 }
             }
         }
@@ -54,7 +57,7 @@ class ListAlunos : ComponentActivity() {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ListAlunosScreen(curso: String) {
+fun ListAlunosScreen(curso: String, nomeCurso: String) {
 
     val defaultFont = FontFamily(Font(R.font.roboto_black))
 
@@ -76,37 +79,83 @@ fun ListAlunosScreen(curso: String) {
 
     val context = LocalContext.current
 
-    val call = RetrofitFactory().getAlunosService().getAlunosByCourse(siglaCurso = curso)
+    fun callList(){
+        val call = RetrofitFactory().getAlunosService().getAlunosByCourse(siglaCurso = curso)
 
-    call.enqueue(object : Callback<Alunos> {
-        override fun onResponse(
-            call: Call<Alunos>,
-            response: Response<Alunos>
-        ) {
-            listAlunos = response.body()!!.alunos
-        }
+        call.enqueue(object : Callback<Alunos> {
+            override fun onResponse(
+                call: Call<Alunos>,
+                response: Response<Alunos>
+            ) {
+                listAlunos = response.body()!!.alunos
+            }
 
-        override fun onFailure(call: Call<Alunos>, t: Throwable) {
-            TODO("Not yet implemented")
-        }
+            override fun onFailure(call: Call<Alunos>, t: Throwable) {
+                TODO("Not yet implemented")
+            }
 
-    })
+        })
+    }
+
+    callList()
 
     fun filterText(nomeDoAluno: String){
-        val callByName = RetrofitFactory().getAlunosService().getAlunoByNameAndCourse(nome = nomeDoAluno)
-        callByName.enqueue(object : Callback<ListaCursos> {
+        val call = RetrofitFactory().getAlunosService().getAlunoByNameAndCourse(nomeAluno = nomeDoAluno, siglaCurso = curso)
+        call.enqueue(object : Callback<Alunos> {
             override fun onResponse(
-                call: Call<ListaCursos>,
-                response: Response<ListaCursos>
+                call: Call<Alunos>,
+                response: Response<Alunos>
             ) {
-                listCursos = if (response.body() != null){
-                    response.body()!!.cursos
+                listAlunos = if (response.body() != null){
+                    response.body()!!.alunos
                 } else {
                     emptyList()
                 }
             }
 
-            override fun onFailure(call: Call<ListaCursos>, t: Throwable) {
+            override fun onFailure(call: Call<Alunos>, t: Throwable) {
+
+            }
+
+        })
+    }
+
+    fun filterByStatus(status: String){
+        val call = RetrofitFactory().getAlunosService().getAlunoByStatusAndCourse(status = status, siglaCurso = curso)
+        call.enqueue(object : Callback<Alunos> {
+            override fun onResponse(
+                call: Call<Alunos>,
+                response: Response<Alunos>
+            ) {
+                listAlunos = if (response.body() != null){
+                    response.body()!!.alunos
+                } else {
+                    emptyList()
+                }
+            }
+
+            override fun onFailure(call: Call<Alunos>, t: Throwable) {
+
+            }
+
+        })
+    }
+
+    fun filterByStatusAndName(nomeDoAluno: String, status: String){
+        val call = RetrofitFactory().getAlunosService().getAlunoByStatusAndCourseAndName(nomeAluno = nomeDoAluno, siglaCurso = curso, status = status)
+        call.enqueue(object : Callback<Alunos> {
+            override fun onResponse(
+                call: Call<Alunos>,
+                response: Response<Alunos>
+            ) {
+                listAlunos = if (response.body() != null){
+                    response.body()!!.alunos
+                } else {
+                    emptyList()
+                }
+            }
+
+            override fun onFailure(call: Call<Alunos>, t: Throwable) {
 
             }
 
@@ -158,7 +207,8 @@ fun ListAlunosScreen(curso: String) {
             Spacer(modifier = Modifier.height(30.dp))
 
             Text(
-                text = "Técnico em Desenvolvimento de Sistemas",
+                text = nomeCurso.replace(Regex("[0-9]|-"),
+                    "").drop(2),
                 fontFamily = defaultFont,
                 fontSize = 17.sp,
                 color = Color(50, 71, 176)
@@ -171,7 +221,25 @@ fun ListAlunosScreen(curso: String) {
                 .height(50.dp)
                 .border(border = BorderStroke(color = Color.Transparent, width = 0.dp)),
                 value = textField,
-                onValueChange = { textField = it },
+                onValueChange = { textField = it
+
+                    if(textField != "" && !finalizedState && coursingState){
+                        filterByStatusAndName(status = "Cursando", nomeDoAluno = textField)
+                    } else if (textField == "" && !finalizedState && coursingState){
+                        filterByStatus(status = "Cursando")
+                    } else if(textField != "" && finalizedState && coursingState) {
+                        filterText(textField)
+                    } else if(textField != "" && !finalizedState && !coursingState){
+                        filterText(textField)
+                    } else if(textField == "" && finalizedState && coursingState){
+                        callList()
+                    } else if(textField != "" && finalizedState && !coursingState){
+                        filterByStatusAndName(status = "Finalizado", nomeDoAluno = textField)
+                    } else if (textField == "" && finalizedState && !coursingState){
+                        filterByStatus(status = "Finalizado")
+                    } else if (textField == "" && !finalizedState && !coursingState) {
+                        callList()
+                    } },
                 colors = TextFieldDefaults.textFieldColors(
                     backgroundColor = Color(50, 71, 176),
                     unfocusedIndicatorColor = Color.Transparent,
@@ -213,6 +281,24 @@ fun ListAlunosScreen(curso: String) {
                     onCheckedChange = { checked ->
                         // Ativa o botão atual
                         coursingState = checked
+
+                        if(textField != "" && !finalizedState && coursingState){
+                            filterByStatusAndName(status = "Cursando", nomeDoAluno = textField)
+                        } else if (textField == "" && !finalizedState && coursingState){
+                            filterByStatus(status = "Cursando")
+                        } else if(textField != "" && finalizedState && coursingState) {
+                            filterText(textField)
+                        } else if(textField != "" && !finalizedState && !coursingState){
+                            filterText(textField)
+                        } else if(textField == "" && finalizedState && coursingState){
+                            callList()
+                        } else if(textField != "" && finalizedState && !coursingState){
+                            filterByStatusAndName(status = "Finalizado", nomeDoAluno = textField)
+                        } else if (textField == "" && finalizedState && !coursingState){
+                            filterByStatus(status = "Finalizado")
+                        } else if (textField == "" && !finalizedState && !coursingState) {
+                            callList()
+                        }
                     },
                     modifier = Modifier
                         .fillMaxHeight()
@@ -251,6 +337,24 @@ fun ListAlunosScreen(curso: String) {
                     checked = finalizedState,
                     onCheckedChange = { checked ->
                         finalizedState = checked
+
+                        if(textField != "" && !finalizedState && coursingState){
+                            filterByStatusAndName(status = "Cursando", nomeDoAluno = textField)
+                        } else if (textField == "" && !finalizedState && coursingState){
+                            filterByStatus(status = "Cursando")
+                        } else if(textField != "" && finalizedState && coursingState) {
+                            filterText(textField)
+                        } else if(textField != "" && !finalizedState && !coursingState){
+                            filterText(textField)
+                        } else if(textField == "" && finalizedState && coursingState){
+                            callList()
+                        } else if(textField != "" && finalizedState && !coursingState){
+                            filterByStatusAndName(status = "Finalizado", nomeDoAluno = textField)
+                        } else if (textField == "" && finalizedState && !coursingState){
+                            filterByStatus(status = "Finalizado")
+                        } else if (textField == "" && !finalizedState && !coursingState) {
+                            callList()
+                        }
                     },
                     modifier = Modifier
                         .fillMaxHeight()
@@ -393,6 +497,6 @@ fun ListAlunosScreen(curso: String) {
 }
 
 @Composable
-fun ListAlunosPreview(curso: String) {
-    ListAlunosScreen(curso)
+fun ListAlunosPreview(curso: String, nomeCurso: String) {
+    ListAlunosScreen(curso, nomeCurso)
 }

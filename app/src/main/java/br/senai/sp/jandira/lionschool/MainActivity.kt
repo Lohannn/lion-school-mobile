@@ -65,6 +65,7 @@ fun HomeScreen() {
     }
 
     var cursoSelecionado = ""
+    var nomeCurso = ""
 
     var buttonReady by remember {
         mutableStateOf(false)
@@ -90,6 +91,7 @@ fun HomeScreen() {
 
     fun filterText(nomeDoCurso: String){
         val callByName = RetrofitFactory().getCursosService().getCursosByName(nomeDoCurso)
+
             callByName.enqueue(object : Callback<ListaCursos> {
                 override fun onResponse(
                     call: Call<ListaCursos>,
@@ -206,10 +208,12 @@ fun HomeScreen() {
                                 // Ativa o botão atual
                                 buttonStates[index] = checked
 
-                                cursoSelecionado = if(checked){
-                                    curso.sigla
+                                 if(checked){
+                                     cursoSelecionado = curso.sigla
+                                     nomeCurso = curso.nome
                                 } else {
-                                    ""
+                                     cursoSelecionado = ""
+                                     nomeCurso = ""
                                 }
 
                                 buttonReady = checked
@@ -302,6 +306,7 @@ fun HomeScreen() {
                 onClick = {
                     var openList = Intent(context, ListAlunos::class.java)
                     openList.putExtra("sigla", cursoSelecionado)
+                    openList.putExtra("nome", nomeCurso)
                     context.startActivity(openList)
                 }) {
                 Text(text = "Selecionar Curso",
